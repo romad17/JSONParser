@@ -1,7 +1,17 @@
 <!DOCTYPE HTML>
-<html>
+<html lang="en">
 <head>
     <script src= "https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <style>
+        th, td {
+            border: 1px solid;
+
+        }
+        th {
+            font-weight : bold;
+        }
+    </style>
+    <title>JSON to Table</title>
 </head>
 
 <body style = "text-align:center;" id = "body">
@@ -16,67 +26,98 @@ Choose JSON file:<br>
                 { "col_1": "val_31", "col_3": "val_33" }
             ];*/
 
-    document.getElementById('upload').addEventListener('change', readFileAsString)
-    function readFileAsString() {
-        var files = this.files;
-        if (files.length === 0) {
-            console.log('No file is selected');
-            return;
-        }
-
-        var reader = new FileReader();
-        reader.onload = function(event) {
-            //console.log(event.target.result);
-            //var list = [];
-            var list = JSON.parse(event.target.result);
-            console.log("calling constructTable");
-            constructTable('#table',list);
-        };
-        reader.readAsText(files[0]);
+document.getElementById('upload').addEventListener('change', readFileAsString)
+function readFileAsString() {
+    const files = this.files;
+    if (files.length === 0) {
+    console.log('No file is selected');
+    return;
     }
-    function constructTable(selector,list) {
 
-        // Getting the all column names
-        var cols = Headers(list, selector);
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        //console.log(event.target.result);
+        //var list = [];
+        const list = JSON.parse(event.target.result);
+        console.log("calling constructTable");
+        //constructTable('#table',list);
+        document.body.appendChild(buildHtmlTable(list));
+    };
+    reader.readAsText(files[0]);
+}
 
-        // Traversing the JSON data
-        for (var i = 0; i < list.length; i++) {
-            var row = $('<tr/>');
-            for (var colIndex = 0; colIndex < cols.length; colIndex++)
-            {
-                var val = list[i][cols[colIndex]];//console.log('list['+i+'][cols['+colIndex+']] : ' + val);
+    const _table_ = document.createElement('table'),
+        _tr_ = document.createElement('tr'),
+        _th_ = document.createElement('th'),
+        _td_ = document.createElement('td');
 
-                // If there is any key, which is matching
-                // with the column name
-                if (val == null) val = "";
-                row.append($('<td/>').html(val));
+    // Builds the HTML Table out of myList json data from Ivy restful service.
+    function buildHtmlTable(arr) {
+        const table = _table_.cloneNode(false),
+            columns = addAllColumnHeaders(arr, table);
+        let cellValue;
+        for (let i = 0; i < arr.length; ++i) {
+            const tr = _tr_.cloneNode(false);
+            for (let j = 0; j < columns.length; ++j) {
+                const td = _td_.cloneNode(false);
+                if (Array.isArray(arr[i][columns[j]]) && whatIsIt(arr[i][columns[j]][0]) === 'Object') {
+                    cellValue = document.createTextNode(JSON.stringify(arr[i][columns[j]] || ''));
+                    }
+                else
+                cellValue = document.createTextNode(arr[i][columns[j]] || '');
+                //console.log('line: ' + i + ' | column: ' + j + ' | is_array: ' + Array.isArray(cellValue));
+                td.appendChild(cellValue);
+                tr.appendChild(td);
             }
-
-            // Adding each row to the table
-            $(selector).append(row);
+            table.appendChild(tr);
         }
+        return table;
     }
 
-    function Headers(list, selector) {
-        var columns = [];
-        var header = $('<tr/>');
-
-        for (var i = 0; i < list.length; i++) {
-            var row = list[i];
-
-            for (var k in row) {
-                if ($.inArray(k, columns) == -1) {
-                    columns.push(k);
-
-                    // Creating the header
-                    header.append($('<th/>').html(k));
+    // Adds a header row to the table and returns the set of columns.
+    // Need to do union of keys from all records as some records may not contain
+    // all records
+    function addAllColumnHeaders(arr, table)
+    {
+        const columnSet = [],
+            tr = _tr_.cloneNode(false);
+        for (let i = 0; i < arr.length; i++) {
+            for (const key in arr[i]) {
+                if (arr[i].hasOwnProperty(key) && columnSet.indexOf(key)===-1) {
+                    columnSet.push(key);
+                    const th = _th_.cloneNode(false);
+                    th.appendChild(document.createTextNode(key));
+                    tr.appendChild(th);
                 }
             }
         }
+        table.appendChild(tr);
+        return columnSet;
+    }
 
-        // Appending the header to the table
-        $(selector).append(header); console.log('columns: ' + columns);
-        return columns;
+    const stringConstructor = "test".constructor;
+    const arrayConstructor = [].constructor;
+    const objectConstructor = ({}).constructor;
+
+    function whatIsIt(object) {
+        if (object === null) {
+            return "null";
+        }
+        if (object === undefined) {
+            return "undefined";
+        }
+        if (object.constructor === stringConstructor) {
+            return "String";
+        }
+        if (object.constructor === objectConstructor) {
+            return "Object";
+        }
+        if (object.constructor === arrayConstructor) {
+            return "Array";
+        }
+        {
+            return "don't know";
+        }
     }
 </script>
 </body>
